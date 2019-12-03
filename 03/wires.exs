@@ -62,13 +62,18 @@ defmodule WireGrid do
     end
   end
 
-  def get_wire_intersections(wire1, wire2) do
+  def get_intersecting_segments(wire1, wire2) do
     normalized_wire1 = Enum.map(wire1, &normalize_segment/1)
     normalized_wire2 = Enum.map(wire2, &normalize_segment/1)
     for seg1 <- normalized_wire1,
         seg2 <- normalized_wire2,
         normalized_segments_intersect?(seg1, seg2),
-        do: get_normalized_segment_intersection(seg1, seg2)
+        do: {seg1, seg2}
+  end
+
+  def get_wire_intersections(wire1, wire2) do
+    segments = get_intersecting_segments(wire1, wire2)
+    Enum.map(segments, fn {seg1, seg2} -> get_normalized_segment_intersection(seg1, seg2) end)
   end
 
   def get_distance_from_origin({x, y}) do
@@ -110,10 +115,6 @@ defmodule Script do
         filename = List.first(args)
         [wire1, wire2] = read_paths_from_file(filename)
           |> Enum.map(&WireGrid.wire_from_path/1)
-        # WireGrid.print_wire(wire1)
-        # WireGrid.print_wire(wire2)
-        # intersections = WireGrid.get_wire_intersections(wire1, wire2)
-        # IO.inspect(intersections)
         IO.puts(WireGrid.get_closest_intersection(wire1, wire2))
     end
   end
