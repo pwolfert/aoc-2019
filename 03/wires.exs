@@ -16,6 +16,15 @@ defmodule WireGrid do
     %WireSegment{x0: x, y0: y, x1: x + dx, y1: y + dy}
   end
 
+  def normalize_segment(segment) do
+    %WireSegment{
+      x0: if segment.x0 < segment.x1 do segment.x0 end,
+      x1: if segment.x0 >= segment.x1 do segment.x1 end,
+      y0: if segment.y0 < segment.y1 do segment.y0 end,
+      y1: if segment.y0 >= segment.y1 do segment.y1 end
+    }
+  end
+
   def wire_from_path(path), do: wire_from_path(path, 0, 0)
   def wire_from_path([], _x, _y), do: []
   def wire_from_path([head | tail], x, y) do
@@ -35,35 +44,13 @@ defmodule WireGrid do
     x_overlap and y_overlap
   end
 
-  
+
 
   def get_wire_intersections(wire1, wire2) do
-    Enum.reduce(
-      wire1,
-      [],
-      fn seg1, intersections ->
-        Enum.reduce(
-          wire2,
-          intersections,
-          fn seg2, acc ->
-            if segments_intersect?(seg1, seg2) do
-              [{seg1, seg2} | acc]
-            else
-              acc
-            end
-          end
-        )
-      end
-      # fn noun ->
-      #   test_verb = fn v -> noun_verb_gives_output?(ints, noun, v, output) end
-      #   verb = Enum.find(value_range, test_verb)
-      #   if verb do
-      #     {noun, verb}
-      #   else
-      #     nil
-      #   end
-      # end
-    )
+    for seg1 <- wire1,
+        seg2 <- wire2,
+        segments_intersect?(seg1, seg2),
+        do: {seg1, seg2}
   end
 
   def print_wire(wire_segments) do
