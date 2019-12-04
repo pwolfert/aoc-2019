@@ -105,9 +105,9 @@ defmodule WireGrid do
   end
 
   def get_interception_with_fewest_steps(wire1, wire2) do
-    [_first | segments] = WireGrid.get_intersecting_segments(wire1, wire2)
-    segments
+    WireGrid.get_intersecting_segments(wire1, wire2)
       |> Enum.map(fn {seg1, seg2} -> get_steps_to_intersection(wire1, wire2, seg1, seg2) end)
+      |> Enum.filter(fn steps -> steps > 0 end)
       |> Enum.sort()
       |> List.first()
   end
@@ -154,8 +154,6 @@ defmodule Script do
           "--steps" -> IO.puts(WireGrid.get_interception_with_fewest_steps(wire1, wire2))
           _ -> usage()
         end
-
-
     end
   end
 end
