@@ -1,7 +1,7 @@
 #!/usr/bin/env elixir
 defmodule WireGrid do
   defmodule WireSegment do
-    defstruct [:x0, :y0, :x1, :y1]
+    defstruct [:x0, :y0, :x1, :y1, :length]
   end
 
   def create_segment(x, y, direction_string) do
@@ -13,7 +13,7 @@ defmodule WireGrid do
       "R" -> {length, 0}
       "L" -> {-length, 0}
     end
-    %WireSegment{x0: x, y0: y, x1: x + dx, y1: y + dy}
+    %WireSegment{x0: x, y0: y, x1: x + dx, y1: y + dy, length: length}
   end
 
   # In order to simplify intersection calculation, I'm normalizing the segments
@@ -78,6 +78,21 @@ defmodule WireGrid do
 
   def get_distance_from_origin({x, y}) do
     abs(x) + abs(y)
+  end
+
+  def get_steps_from_origin(wire), do: get_steps_from_origin(wire, 0)
+  def get_steps_from_origin([], steps), do: steps
+  def get_steps_from_origin([segment | rest_of_wire], steps) do
+    get_steps_from_origin(rest_of_wire, steps + segment.length)
+  end
+
+  def get_steps_to_intersection(wire1, wire2, seg1, seg2) do
+    intersecting_point = get_normalized_segment_intersection(seg1, seg2)
+    seg1_index = Enum.find_index(wire1, seg1)
+    seg2_index = Enum.find_index(wire2, seg2)
+    steps_to_seg1 = get_steps_from_origin(Enum.slice(wire1, 0..seg1_index))
+    steps_to_seg2 = get_steps_from_origin(Enum.slice(wire2, 0..seg2_index))
+
   end
 
   def get_closest_intersection(wire1, wire2) do
