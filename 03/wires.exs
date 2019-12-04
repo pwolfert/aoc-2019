@@ -34,7 +34,9 @@ defmodule WireGrid do
   end
 
   # Only works for normalized segments
-  def normalized_segments_intersect?(s1, s2) do
+  def segments_intersect?(s1, s2) do
+    s1 = normalize_segment(s1)
+    s2 = normalize_segment(s2)
     x_overlap = (
       (s1.x0 <= s2.x0 and s1.x1 >= s2.x1) or
       (s2.x0 <= s1.x0 and s2.x1 >= s1.x1)
@@ -52,7 +54,9 @@ defmodule WireGrid do
     {h_segment.x0 + relative_x, v_segment.y0 + relative_y}
   end
 
-  def get_normalized_segment_intersection(s1, s2) do
+  def get_segment_intersection(s1, s2) do
+    s1 = normalize_segment(s1)
+    s2 = normalize_segment(s2)
     if s1.x1 - s1.x0 > 0 do
       # s1 is the horizontal line
       get_horizontal_vertical_intersection(s1, s2)
@@ -63,36 +67,49 @@ defmodule WireGrid do
   end
 
   def get_intersecting_segments(wire1, wire2) do
-    normalized_wire1 = Enum.map(wire1, &normalize_segment/1)
-    normalized_wire2 = Enum.map(wire2, &normalize_segment/1)
-    for seg1 <- normalized_wire1,
-        seg2 <- normalized_wire2,
-        normalized_segments_intersect?(seg1, seg2),
+    for seg1 <- wire1,
+        seg2 <- wire2,
+        segments_intersect?(seg1, seg2),
         do: {seg1, seg2}
   end
 
   def get_wire_intersections(wire1, wire2) do
     segments = get_intersecting_segments(wire1, wire2)
-    Enum.map(segments, fn {seg1, seg2} -> get_normalized_segment_intersection(seg1, seg2) end)
+    Enum.map(segments, fn {seg1, seg2} -> get_segment_intersection(seg1, seg2) end)
   end
 
   def get_distance_from_origin({x, y}) do
     abs(x) + abs(y)
   end
 
-  def get_steps_from_origin(wire), do: get_steps_from_origin(wire, 0)
-  def get_steps_from_origin([], steps), do: steps
-  def get_steps_from_origin([segment | rest_of_wire], steps) do
-    get_steps_from_origin(rest_of_wire, steps + segment.length)
+  def get_distance_between(x0, y0, x1, y1) do
+    abs(x1 - x0) + abs(y1 - y0)
+  end
+
+  def get_steps_from_origin(wire, segment), do: get_steps_from_origin(wire, segment, 0)
+  def get_steps_from_origin([], _, steps), do: steps
+  def get_steps_from_origin([current_segment | _rest_of_wire], segment, steps)
+    when current_segment == segment,
+    do: steps
+  def get_steps_from_origin([current_segment | rest_of_wire], segment, steps) do
+    get_steps_from_origin(rest_of_wire, segment, steps + current_segment.length)
   end
 
   def get_steps_to_intersection(wire1, wire2, seg1, seg2) do
-    intersecting_point = get_normalized_segment_intersection(seg1, seg2)
-    seg1_index = Enum.find_index(wire1, seg1)
-    seg2_index = Enum.find_index(wire2, seg2)
-    steps_to_seg1 = get_steps_from_origin(Enum.slice(wire1, 0..seg1_index))
-    steps_to_seg2 = get_steps_from_origin(Enum.slice(wire2, 0..seg2_index))
+    {ix, iy} = get_segment_intersection(seg1, seg2)
+    steps_to_seg1 = get_steps_from_origin(wire1, seg1)
+    steps_to_seg2 = get_steps_from_origin(wire2, seg2)
+    partial_seg1_steps = get_distance_between(ix, iy, seg1.x0, seg1.y0)
+    partial_seg2_steps = get_distance_between(ix, iy, seg2.x0, seg2.y0)
+    steps_to_seg1 + steps_to_seg2 + partial_seg1_steps + partial_seg2_steps
+  end
 
+  def get_interception_with_fewest_steps(wire1, wire2) do
+    [_first | segments] = WireGrid.get_intersecting_segments(wire1, wire2)
+    segments
+      |> Enum.map(fn {seg1, seg2} -> get_steps_to_intersection(wire1, wire2, seg1, seg2) end)
+      |> Enum.sort()
+      |> List.first()
   end
 
   def get_closest_intersection(wire1, wire2) do
@@ -113,7 +130,7 @@ end
 
 defmodule Script do
   def usage do
-    IO.puts("exlixir intcode.exs <input.txt> [<output_search_value>]")
+    IO.puts("exlixir intcode.exs [--distance | --steps] <input.txt> [<output_search_value>]")
   end
 
   def read_paths_from_file(filename) do
@@ -125,12 +142,20 @@ defmodule Script do
 
   def main(args) do
     case Enum.count(args) do
-      x when x === 0 -> usage()
-      x when x === 1 ->
-        filename = List.first(args)
+      x when x < 2 -> usage()
+      x when x === 2 ->
+        flag = List.first(args)
+        filename = Enum.fetch!(args, 1)
         [wire1, wire2] = read_paths_from_file(filename)
           |> Enum.map(&WireGrid.wire_from_path/1)
-        IO.puts(WireGrid.get_closest_intersection(wire1, wire2))
+
+        case flag do
+          "--distance" -> IO.puts(WireGrid.get_closest_intersection(wire1, wire2))
+          "--steps" -> IO.puts(WireGrid.get_interception_with_fewest_steps(wire1, wire2))
+          _ -> usage()
+        end
+
+
     end
   end
 end
