@@ -1,14 +1,19 @@
 defmodule Passwords do
-  def has_adjacent_repeating_digits?(digits) do
-    result = digits
-      |> Enum.reduce(fn digit, previous_digit ->
-        cond do
-          previous_digit === true -> true
-          previous_digit === digit -> true
-          true -> digit
+  def has_2_adjacent_repeating_digits?(digits) do
+    [first | rest] = digits
+    rest
+      |> Enum.reduce(
+        [[first]],
+        fn digit, digit_groups ->
+          [previous_group | rest_groups] = digit_groups
+          if digit === List.first(previous_group) do
+            [[digit | previous_group] | rest_groups]
+          else
+            [[digit] | digit_groups]
+          end
         end
-      end)
-    result === true
+      )
+      |> Enum.any?(fn group -> Enum.count(group) === 2 end)
   end
 
   def digits_do_not_decrease?(digits) do
@@ -21,7 +26,7 @@ defmodule Passwords do
 
   def is_valid_password?(password_integer) do
     digits = Integer.digits(password_integer)
-    has_adjacent_repeating_digits?(digits) and digits_do_not_decrease?(digits)
+    has_2_adjacent_repeating_digits?(digits) and digits_do_not_decrease?(digits)
   end
 
   def num_valid_passwords_in_range(range_start, range_end) do
@@ -41,6 +46,10 @@ defmodule Script do
       usage()
     else
       [range_start, range_end] = args
+      # IO.puts(Passwords.has_2_adjacent_repeating_digits?([1, 2, 3, 4, 5, 6]))
+      # IO.puts(Passwords.has_2_adjacent_repeating_digits?([1, 2, 2, 4, 5, 6]))
+      # IO.puts(Passwords.has_2_adjacent_repeating_digits?([1, 2, 2, 2, 5, 6]))
+      # IO.puts(Passwords.has_2_adjacent_repeating_digits?([1, 2, 3, 4, 2, 2]))
       IO.puts(Passwords.num_valid_passwords_in_range(String.to_integer(range_start), String.to_integer(range_end)))
     end
   end
