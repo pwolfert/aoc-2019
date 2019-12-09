@@ -33,7 +33,8 @@ defmodule Intcode do
     [instruction, a, b, out_pos] = Enum.slice(ints, pos, 4)
     [a, b] = get_parameter_values(ints, instruction, [a, b])
     out = op.(a, b)
-    process(List.replace_at(ints, out_pos, out), pos + 4)
+    new_pos = if pos == out_pos, do: pos, else: pos + 4
+    process(List.replace_at(ints, out_pos, out), new_pos)
   end
 
   def process_input(ints, pos) do
@@ -45,15 +46,16 @@ defmodule Intcode do
   end
 
   def process_output(ints, pos) do
-    out_pos = Enum.fetch!(ints, pos + 1)
-    IO.puts("#{Enum.fetch!(ints, out_pos)}")
+    [instruction, out] = Enum.slice(ints, pos, 2)
+    [out] = get_parameter_values(ints, instruction, [out])
+    IO.puts("#{out}")
     process(ints, pos + 2)
   end
 
   def process_jump_if(ints, pos, truthy) do
     [instruction, value, jump_to] = Enum.slice(ints, pos, 3)
     [value, jump_to] = get_parameter_values(ints, instruction, [value, jump_to])
-    jump? = (truthy and value != 0) or (!truthy and value === 0)
+    jump? = (truthy and value != 0) or (!truthy and value == 0)
     if jump? do
       process(ints, jump_to)
     else
