@@ -1,12 +1,25 @@
 #!/usr/bin/env elixir
 defmodule OrbitMap do
+  @com "COM"
+
+  def count_orbits(map), do: count_orbits(map, @com)
+  def count_orbits(map, body, depth \\ 0) do
+    num_satellite_orbits = Map.get(map, body, [])
+      |> Enum.map(fn satellite -> count_orbits(map, satellite, depth + 1) end)
+      |> Enum.sum()
+    # Always add the depth because it repesents all the indirect orbits up the
+    # tree
+    depth + num_satellite_orbits
+  end
+
   def parse(list) do
     Enum.reduce(
       list,
-      %{},
+      %{@com => []},
       fn line, map ->
-        [orbitee, orbiter] = String.split(line, ")")
-        Map.put(map, orbiter, orbitee)
+        [body, satellite] = String.split(line, ")")
+        satellite_list = Map.get(map, body, [])
+        Map.put(map, body, [satellite | satellite_list])
       end
     )
   end
@@ -29,7 +42,8 @@ defmodule Script do
     if Enum.count(args) == 1 do
       input = read_input(args)
       orbit_map = OrbitMap.parse(input)
-      IO.inspect(orbit_map)
+      orbit_count = OrbitMap.count_orbits(orbit_map)
+      IO.puts(orbit_count)
     else
       usage()
     end
