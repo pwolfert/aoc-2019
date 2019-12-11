@@ -1,5 +1,5 @@
 #!/usr/bin/env elixir
-defmodule OrbitMap do
+defmodule OrbitTree do
   @com "COM"
 
   def count_orbits(map), do: count_orbits(map, @com)
@@ -27,7 +27,7 @@ end
 
 defmodule Script do
   def usage do
-    IO.puts("exlixir intcode.exs <input.txt>")
+    IO.puts("exlixir orbits.exs <input.txt>")
   end
 
   def read_input(args) do
@@ -41,8 +41,8 @@ defmodule Script do
   def main(args) do
     if Enum.count(args) == 1 do
       input = read_input(args)
-      orbit_map = OrbitMap.parse(input)
-      orbit_count = OrbitMap.count_orbits(orbit_map)
+      orbit_tree = OrbitTree.parse(input)
+      orbit_count = OrbitTree.count_orbits(orbit_tree)
       IO.puts(orbit_count)
     else
       usage()
