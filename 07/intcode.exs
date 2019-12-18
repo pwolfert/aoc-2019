@@ -101,7 +101,35 @@ defmodule Intcode do
 end
 
 defmodule AmplifierController do
+  @phase_settings Enum.to_list(0..4)
 
+  # From https://rosettacode.org/wiki/Permutations#Elixir
+  def permute([]), do: [[]]
+  def permute(list) do
+    for elem <- list, rest <- permute(list -- [elem]), do: [elem | rest]
+  end
+
+  def get_amplifier_output(intcodes, phase_setting, input) do
+    outputs = Intcode.run(intcodes, [phase_setting, input])
+    List.first(outputs)
+  end
+
+  def get_amplifier_array_output(intcodes, amplifier_settings) do
+    Enum.reduce(
+      amplifier_settings,
+      0,
+      fn phase_setting, previous_output ->
+        get_amplifier_output(intcodes, phase_setting, previous_output)
+      end
+    )
+  end
+
+  def find_max_amplification_config(intcodes) do
+    @phase_settings
+      |> permute()
+      |> Enum.map(fn settings -> get_amplifier_array_output(intcodes, settings) end)
+      |> Enum.max()
+  end
 end
 
 defmodule Script do
@@ -120,8 +148,8 @@ defmodule Script do
   def main(args) do
     if Enum.count(args) == 1 do
       intcodes = read_intcodes(args)
-      outputs = Intcode.run(intcodes, [5])
-      IO.inspect(outputs)
+      max = AmplifierController.find_max_amplification_config(intcodes)
+      IO.inspect(max)
     else
       usage()
     end
